@@ -154,7 +154,7 @@ void mainTask(void *pvParameters) {
       digitalWrite (relay_ambilSampel, HIGH); delay (5000); //Ambil sampel air baru untuk monitoring
       digitalWrite (relay_ambilSampel, LOW); 
       digitalWrite (relay_penyiram, HIGH); delay (5000); //melakukan penyiraman
-      digitalWrite (relay_mixer, LOW); 
+      digitalWrite (relay_penyiram, LOW); 
 
       kontrol_tinggi(); //memastikan air dalam tamgki sesuai ketetapan
 

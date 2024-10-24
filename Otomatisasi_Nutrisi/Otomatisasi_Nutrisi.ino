@@ -2,7 +2,7 @@
 #include <ESP8266WiFi.h>
 #include <PubSubClient.h>
 #include <LiquidCrystal_I2C.h>
-//#include <RTClib.h>
+#include <RTClib.h>
 //#include <OneWire.h>
 //#include <DallasTemperature.h>
 //#include "fuzzy_function.h"
@@ -19,9 +19,10 @@ const char* PUBTOPIC_PH = "greenhouse/output/ph";
 const char* PUBTOPIC_PPM = "greenhouse/output/ppm";
 const char* PUBTOPIC_TINGGI = "greenhouse/output/tinggi";
 const char* PUBTOPIC_SUHU = "greenhouse/output/suhu";
+const char* PUBTOPIC_WAKTU = "greenhouse/output/waktu";
 
-const char* ssid ="Prastzy.net";
-const char* password = "123456781";
+const char* ssid ="bebas";
+const char* password = "akunulisaja";
 
 //Deklarasi Pin
 /*
@@ -30,15 +31,15 @@ const char* password = "123456781";
 #define pin_TRIG 12
 #define pin_ECHO 14
 */
-#define relay_pHup D1
-#define relay_pHdn D2
-#define relay_nutrisiA D3
+#define relay_pHup 5
+#define relay_pHdn 4
+#define relay_nutrisiA 0
 //#define relay_nutrisiB 4
-#define relay_ambilSampel D4
-#define relay_buangSampel D5
-#define relay_penyiram D6
-#define relay_tangki D7
-#define relay_mixer D8
+#define relay_ambilSampel 2
+#define relay_buangSampel 14
+#define relay_penyiram 12
+#define relay_tangki 13
+#define relay_mixer 15
 
 //#define ONE_WIRE_BUS D0
 //OneWire oneWire(ONE_WIRE_BUS);
@@ -46,8 +47,10 @@ const char* password = "123456781";
 WiFiClient espClient;
 PubSubClient client(espClient);
 LiquidCrystal_I2C lcd(0x27,20,4);
-//RTC_DS1307 rtc;
+RTC_DS1307 rtc;
 //int setWaktu1 [] = {8,0,0}; //jam, menit, detik
+int menit;
+char daysOfTheWeek[7][12] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
 
 float set_jarak = 100;
 float pH, PPM, selisih_pH, selisih_PPM, set_pH = 7, set_PPM = 100;
@@ -102,13 +105,17 @@ void setup() {
   lcd.print("==============");
   delay(1000);
   lcd.clear();
-  
+  */
   if (! rtc.begin()) {
     Serial.println("RTC tidak ditemukan");
-    Serial.flush();
-    abort();
+    while (1);
   }
-  */
+
+  if (!rtc.isrunning()) {
+    Serial.println("RTC tidak berjalan, setting waktu...");
+    rtc.adjust(DateTime(F(__DATE__), F(__TIME__))); // Set waktu sesuai waktu kompilasi
+  }
+  
   client.setServer(mqtt_server, 1883);
   client.setCallback(callback);
   
@@ -121,13 +128,14 @@ void loop() {
   }
   client.loop();
   mainTask ();
-  delay(1000);
 }
 
 //=========================================================
 void mainTask (){
     //if (now.hour() == setWaktu1[0] && now.minute() == setWaktu1[1] && now.second() == setWaktu1[2] ){
-    if (kondisi == true){ //pengganti rtc 
+    DateTime now = rtc.now();
+    if (now.minute() == menit ){
+    //if (kondisi == true){ //pengganti rtc 
       Serial.println("==================================");
       Serial.println("kondisi didalam mainTask ");
       Serial.println("==================================");
@@ -194,6 +202,7 @@ void mainTask (){
       Serial.println("kondisi diluar mainTask");
       Serial.println("==================================");
     }
+    delay(1000);
 }
 
 void monitoring(){
@@ -201,11 +210,11 @@ void monitoring(){
     baca_PPM(); //PPM
     baca_jarak(); //jarak
     baca_suhu();  //suhu
-    //DateTime now = rtc.now(); //waktu
+    DateTime now = rtc.now(); //waktu
     outputFuzzy(); //output fuzzy
 
     //Serial Monitor
-    //baca_RTC();
+    baca_RTC();
     //Serial.print("pH : "); Serial.println(pH);
     //Serial.print("EC : "); Serial.println(PPM);
     //Serial.print("Suhu : "); Serial.println(suhu);
@@ -300,7 +309,7 @@ void kontrol_PPM(){
 
 void baca_jarak(){
   //digitalWrite(PIN_TRIG, HIGH);
-  //delayMicroseconds(10);
+  delayMicroseconds(10);
   //digitalWrite(PIN_TRIG, LOW);
   //duration = pulseIn(PIN_ECHO, HIGH);
   //jarak_inci = duration / 148; //dalam inci
@@ -345,7 +354,7 @@ void callback(char *topic, byte *payload, unsigned int length) {
       Serial.println("Penyiram manual OFF");
     }
   }
-
+/*
   // kontrol mainTask (test)
   if (!strcmp(topic, SUBTOPIC_TEST)) {
     if (!strncmp(msg, "on", length)) {
@@ -356,7 +365,7 @@ void callback(char *topic, byte *payload, unsigned int length) {
       //Serial.println("OFF");
     }
   }
-
+*/
   // Set pH
   if (!strcmp(topic, SUBTOPIC_SETPH)) {
     set_pH = atof(msg); 
@@ -369,6 +378,13 @@ void callback(char *topic, byte *payload, unsigned int length) {
     set_PPM = atof(msg); 
     Serial.print("Set PPM menjadi : ");
     Serial.println(set_PPM);
+  }
+
+  // Set Waktu
+  if (!strcmp(topic, SUBTOPIC_TEST)) {
+    menit = atoi(msg); 
+    Serial.print("Set menit menjadi : ");
+    Serial.println(menit);
   }
 }
 
@@ -409,8 +425,27 @@ void reconnect() {
 }
 
 void baca_RTC(){
-  //Serial monitor
+  // Membuat string pesan dengan format yang diinginkan
+  DateTime now = rtc.now();
+  String pesan = ">> ";
+  pesan += String(now.year());
+  pesan += '/';
+  pesan += String(now.month());
+  pesan += '/';
+  pesan += String(now.day());
+  pesan += " (";
+  pesan += daysOfTheWeek[now.dayOfTheWeek()];
+  pesan += ") - ";
+  pesan += String(now.hour());
+  pesan += ':';
+  pesan += String(now.minute());
+  pesan += ':';
+  pesan += String(now.second());
+
+  // Kirimkan pesan ke MQTT
+  client.publish(PUBTOPIC_WAKTU, pesan.c_str());
   /*
+  //Serial monitor
   Serial.print("Current time: ");
   Serial.print(now.year(), DEC);
   Serial.print('/');
@@ -428,6 +463,7 @@ void baca_RTC(){
   Serial.print(now.second(), DEC);
   Serial.println();
   //LCD
+  
   lcd.setCursor(0,0);
   lcd.print(now.year(), DEC);
   lcd.print('/');
@@ -453,4 +489,3 @@ void outputFuzzy (){
   p_hasil = p_inputf * 10000;
   n_hasil = n_inputf * 100;
 }
-

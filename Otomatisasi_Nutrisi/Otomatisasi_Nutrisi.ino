@@ -2,7 +2,7 @@
 #include <ESP8266WiFi.h>
 #include <PubSubClient.h>
 #include <LiquidCrystal_I2C.h>
-#include <RTClib.h>
+//#include <RTClib.h>
 //#include <OneWire.h>
 //#include <DallasTemperature.h>
 //#include "fuzzy_function.h"
@@ -21,8 +21,10 @@ const char* PUBTOPIC_TINGGI = "greenhouse/output/tinggi";
 const char* PUBTOPIC_SUHU = "greenhouse/output/suhu";
 const char* PUBTOPIC_WAKTU = "greenhouse/output/waktu";
 
-const char* ssid ="bebas";
-const char* password = "akunulisaja";
+//const char* ssid ="bebas";
+//const char* password = "akunulisaja";
+const char* ssid ="Prastzy.net";
+const char* password = "123456781";
 
 //Deklarasi Pin
 /*
@@ -31,15 +33,14 @@ const char* password = "akunulisaja";
 #define pin_TRIG 12
 #define pin_ECHO 14
 */
-#define relay_pHup 5
-#define relay_pHdn 4
-#define relay_nutrisiA 0
-//#define relay_nutrisiB 4
-#define relay_ambilSampel 2
-#define relay_buangSampel 14
-#define relay_penyiram 12
-#define relay_tangki 13
-#define relay_mixer 15
+#define relay_pHup 2   //D4
+#define relay_pHdn 14  //D5
+#define relay_nutrisi 12  //D6
+#define relay_ambilSampel 0  //D3
+#define relay_buangSampel 4  //D2
+#define relay_penyiram 15  //D8
+#define relay_tangki 5  //D1
+#define relay_mixer 13  //D2
 
 //#define ONE_WIRE_BUS D0
 //OneWire oneWire(ONE_WIRE_BUS);
@@ -47,9 +48,9 @@ const char* password = "akunulisaja";
 WiFiClient espClient;
 PubSubClient client(espClient);
 LiquidCrystal_I2C lcd(0x27,20,4);
-RTC_DS1307 rtc;
+//RTC_DS1307 rtc;
 //int setWaktu1 [] = {8,0,0}; //jam, menit, detik
-int menit;
+int detik;
 char daysOfTheWeek[7][12] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
 
 float set_jarak = 100;
@@ -88,8 +89,9 @@ void setup() {
   //pinMode(pin_TRIG, OUTPUT);
   pinMode(relay_pHup, OUTPUT);
   pinMode(relay_pHdn, OUTPUT);
-  pinMode(relay_nutrisiA, OUTPUT);
+  pinMode(relay_nutrisi, OUTPUT);
   //pinMode(relay_nutrisiB, OUTPUT);
+  pinMode(relay_mixer, OUTPUT);
   pinMode(relay_penyiram, OUTPUT);
   pinMode(relay_tangki, OUTPUT);
   pinMode(relay_ambilSampel, OUTPUT);
@@ -106,6 +108,7 @@ void setup() {
   delay(1000);
   lcd.clear();
   */
+  /*
   if (! rtc.begin()) {
     Serial.println("RTC tidak ditemukan");
     while (1);
@@ -115,7 +118,7 @@ void setup() {
     Serial.println("RTC tidak berjalan, setting waktu...");
     rtc.adjust(DateTime(F(__DATE__), F(__TIME__))); // Set waktu sesuai waktu kompilasi
   }
-  
+  */
   client.setServer(mqtt_server, 1883);
   client.setCallback(callback);
   
@@ -133,9 +136,9 @@ void loop() {
 //=========================================================
 void mainTask (){
     //if (now.hour() == setWaktu1[0] && now.minute() == setWaktu1[1] && now.second() == setWaktu1[2] ){
-    DateTime now = rtc.now();
-    if (now.minute() == menit ){
-    //if (kondisi == true){ //pengganti rtc 
+    //DateTime now = rtc.now();
+    //if (now.second() == detik ){
+    if (kondisi == true){ //pengganti rtc 
       Serial.println("==================================");
       Serial.println("kondisi didalam mainTask ");
       Serial.println("==================================");
@@ -210,11 +213,11 @@ void monitoring(){
     baca_PPM(); //PPM
     baca_jarak(); //jarak
     baca_suhu();  //suhu
-    DateTime now = rtc.now(); //waktu
+    //DateTime now = rtc.now(); //waktu
     outputFuzzy(); //output fuzzy
 
     //Serial Monitor
-    baca_RTC();
+    //baca_RTC();
     //Serial.print("pH : "); Serial.println(pH);
     //Serial.print("EC : "); Serial.println(PPM);
     //Serial.print("Suhu : "); Serial.println(suhu);
@@ -291,18 +294,17 @@ void kontrol_PPM(){
   baca_PPM();
   outputFuzzy();
   if (PPM < set_PPM  ){
-    Serial.println("Mengaktifkan relay_nutrisiAB");
-    digitalWrite(relay_nutrisiA, HIGH);
-    //digitalWrite(relay_nutrisiB, HIGH);
+    Serial.println("Mengaktifkan relay_nutrisi");
+    digitalWrite(relay_nutrisi, HIGH);
     Serial.print("delay : ");Serial.println(n_hasil);
     delay(n_hasil);
-    Serial.println("Menonaktifkan relay_nutrisiAB");
-    digitalWrite(relay_nutrisiA, LOW);
+    Serial.println("Menonaktifkan relay_nutrisi");
+    digitalWrite(relay_nutrisi, LOW);
     //digitalWrite(relay_nutrisiB, LOW);
   }
   else if (PPM >= set_PPM  ){
-    Serial.println("Menonaktifkan relay_nutrisiAB");
-    digitalWrite(relay_nutrisiA, LOW);
+    Serial.println("Menonaktifkan relay_nutrisi");
+    digitalWrite(relay_nutrisi, LOW);
     //digitalWrite(relay_nutrisiB, LOW);
   }
 }
@@ -320,12 +322,14 @@ void baca_jarak(){
 
 void kontrol_tinggi(){
   baca_jarak();
-  do {
+  while (tinggi_cm < set_jarak - 50) {
     Serial.println("Mengaktifkan relay_tangki");
     digitalWrite(relay_tangki, HIGH);
-  }while(tinggi_cm < set_jarak - 50);
+  }
   Serial.println("delay sampai tinggi air terpenuhi");
   delay(2000);
+  Serial.println("Menonaktifkan relay_tangki");
+  digitalWrite(relay_tangki, LOW);
 }
 
 void baca_suhu(){
@@ -354,7 +358,7 @@ void callback(char *topic, byte *payload, unsigned int length) {
       Serial.println("Penyiram manual OFF");
     }
   }
-/*
+
   // kontrol mainTask (test)
   if (!strcmp(topic, SUBTOPIC_TEST)) {
     if (!strncmp(msg, "on", length)) {
@@ -365,7 +369,7 @@ void callback(char *topic, byte *payload, unsigned int length) {
       //Serial.println("OFF");
     }
   }
-*/
+
   // Set pH
   if (!strcmp(topic, SUBTOPIC_SETPH)) {
     set_pH = atof(msg); 
@@ -379,13 +383,14 @@ void callback(char *topic, byte *payload, unsigned int length) {
     Serial.print("Set PPM menjadi : ");
     Serial.println(set_PPM);
   }
-
+  /*
   // Set Waktu
   if (!strcmp(topic, SUBTOPIC_TEST)) {
-    menit = atoi(msg); 
-    Serial.print("Set menit menjadi : ");
-    Serial.println(menit);
+    detik = atoi(msg); 
+    Serial.print("Set detik menjadi : ");
+    Serial.println(detik);
   }
+  */
 }
 
 void setup_wifi() {
@@ -423,7 +428,7 @@ void reconnect() {
     }
   }
 }
-
+/*
 void baca_RTC(){
   // Membuat string pesan dengan format yang diinginkan
   DateTime now = rtc.now();
@@ -476,9 +481,9 @@ void baca_RTC(){
   lcd.print(now.minute(), DEC);
   lcd.print(':');
   lcd.print(now.second(), DEC);
-  */
+  
 }
-
+*/
 void outputFuzzy (){
   baca_pH();
   baca_PPM();

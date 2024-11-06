@@ -147,18 +147,18 @@ void mainTask (){
       kontrol_tinggi();
 
       Serial.println("Mengaktifkan relay_buangSampel");
-      digitalWrite (relay_buangSampel, HIGH); 
+      digitalWrite (relay_buangSampel, LOW); 
       Serial.println("delay 5 detik ");
       delay(5000);
       Serial.println("Menonaktifkan relay_buangSampel");
-      digitalWrite (relay_buangSampel, LOW); 
+      digitalWrite (relay_buangSampel, HIGH); 
 
       Serial.println("Mengaktifkan relay_ambilSampel");
-      digitalWrite (relay_ambilSampel, HIGH); 
+      digitalWrite (relay_ambilSampel, LOW); 
       Serial.println("delay 5 detik ");
       delay(5000);
       Serial.println("Menonaktifkan relay_ambilSampel");
-      digitalWrite (relay_ambilSampel, LOW); 
+      digitalWrite (relay_ambilSampel, HIGH); 
 
       //data sensor sebelum diotomatisasi
 
@@ -168,34 +168,34 @@ void mainTask (){
       kontrol_PPM(); 
 
       Serial.println("Mengaktifkan relay_mixer");
-      digitalWrite (relay_mixer, HIGH);  
+      digitalWrite (relay_mixer, LOW);  
       Serial.println("delay 5 detik ");
       delay(5000);
       Serial.println("Menonaktifkan relay_mixer");
-      digitalWrite (relay_mixer, LOW); 
+      digitalWrite (relay_mixer, HIGH); 
 
       Serial.println("Mengaktifkan relay_buangSampel");
-      digitalWrite (relay_buangSampel, HIGH); 
+      digitalWrite (relay_buangSampel, LOW); 
       Serial.println("delay 5 detik ");
       delay(5000);
       Serial.println("Menonaktifkan relay_buangSampel");
-      digitalWrite (relay_buangSampel, LOW); 
+      digitalWrite (relay_buangSampel, HIGH); 
 
       Serial.println("Mengaktifkan relay_ambilSampel");
-      digitalWrite (relay_ambilSampel, HIGH); 
+      digitalWrite (relay_ambilSampel, LOW); 
       Serial.println("delay 5 detik ");
       delay(5000);
       Serial.println("Menonaktifkan relay_ambilSampel");
-      digitalWrite (relay_ambilSampel, LOW);  
+      digitalWrite (relay_ambilSampel, HIGH);  
 
       //data sensor setelah diotomatisasi
 
       Serial.println("Mengaktifkan relay_penyiram");
-      digitalWrite (relay_penyiram, HIGH); 
+      digitalWrite (relay_penyiram, LOW); 
       Serial.println("delay 5 detik ");
       delay(5000);
       Serial.println("Menonaktifkan relay_penyiram");
-      digitalWrite (relay_penyiram, LOW); 
+      digitalWrite (relay_penyiram, HIGH); 
 
       Serial.println("menjalankan kontrol_tinggi ");
       kontrol_tinggi();
@@ -257,23 +257,23 @@ void kontrol_pH(){
   outputFuzzy();
   if (pH < set_pH  ){
     Serial.println("Mengaktifkan relay_pHup");
-    digitalWrite(relay_pHup, HIGH);
-    digitalWrite(relay_pHdn, LOW);
-    Serial.print("delay : ");Serial.println(p_hasil);
-    delay(p_hasil);
-    Serial.println("Menonaktifkan relay_pHup");
-    digitalWrite(relay_pHup, LOW);
-    digitalWrite(relay_pHdn, LOW);
-  }
-  else if (pH >= set_pH  ){
-    Serial.println("Mengaktifkan relay_pHdn");
     digitalWrite(relay_pHup, LOW);
     digitalWrite(relay_pHdn, HIGH);
     Serial.print("delay : ");Serial.println(p_hasil);
     delay(p_hasil);
-    Serial.println("Menonaktifkan relay_pHdn");
-    digitalWrite(relay_pHup, LOW);
+    Serial.println("Menonaktifkan relay_pHup");
+    digitalWrite(relay_pHup, HIGH);
+    digitalWrite(relay_pHdn, HIGH);
+  }
+  else if (pH >= set_pH  ){
+    Serial.println("Mengaktifkan relay_pHdn");
+    digitalWrite(relay_pHup, HIGH);
     digitalWrite(relay_pHdn, LOW);
+    Serial.print("delay : ");Serial.println(p_hasil);
+    delay(p_hasil);
+    Serial.println("Menonaktifkan relay_pHdn");
+    digitalWrite(relay_pHup, HIGH);
+    digitalWrite(relay_pHdn, HIGH);
   }
 }
 
@@ -295,17 +295,15 @@ void kontrol_PPM(){
   outputFuzzy();
   if (PPM < set_PPM  ){
     Serial.println("Mengaktifkan relay_nutrisi");
-    digitalWrite(relay_nutrisi, HIGH);
+    digitalWrite(relay_nutrisi, LOW);
     Serial.print("delay : ");Serial.println(n_hasil);
     delay(n_hasil);
     Serial.println("Menonaktifkan relay_nutrisi");
-    digitalWrite(relay_nutrisi, LOW);
-    //digitalWrite(relay_nutrisiB, LOW);
+    digitalWrite(relay_nutrisi, HIGH);
   }
   else if (PPM >= set_PPM  ){
     Serial.println("Menonaktifkan relay_nutrisi");
-    digitalWrite(relay_nutrisi, LOW);
-    //digitalWrite(relay_nutrisiB, LOW);
+    digitalWrite(relay_nutrisi, HIGH);
   }
 }
 
@@ -324,12 +322,12 @@ void kontrol_tinggi(){
   baca_jarak();
   while (tinggi_cm < set_jarak - 50) {
     Serial.println("Mengaktifkan relay_tangki");
-    digitalWrite(relay_tangki, HIGH);
+    digitalWrite(relay_tangki, LOW);
   }
   Serial.println("delay sampai tinggi air terpenuhi");
   delay(2000);
   Serial.println("Menonaktifkan relay_tangki");
-  digitalWrite(relay_tangki, LOW);
+  digitalWrite(relay_tangki, HIGH);
 }
 
 void baca_suhu(){
@@ -351,10 +349,10 @@ void callback(char *topic, byte *payload, unsigned int length) {
   // kontrol Penyiram
   if (!strcmp(topic, SUBTOPIC_PENYIRAM)) {
     if (!strncmp(msg, "on", length)) {
-      digitalWrite(relay_penyiram, HIGH);
+      digitalWrite(relay_penyiram, LOW);
       Serial.println("Penyiram manual ON");
     } else if (!strncmp(msg, "off", length)) {
-      digitalWrite(relay_penyiram, LOW);
+      digitalWrite(relay_penyiram, HIGH);
       Serial.println("Penyiram manual OFF");
     }
   }
